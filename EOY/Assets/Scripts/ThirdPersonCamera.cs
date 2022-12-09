@@ -17,11 +17,11 @@ public class ThirdPersonCamera : MonoBehaviour
         Vector3 wantedPosition;
         if (followBehind)
         {
-            wantedPosition = target.TransformPoint(0, height, -distance);
+            wantedPosition = target.TransformPoint(0, height, distance);
         }
         else
         {
-            wantedPosition = target.TransformPoint(0, height, distance);
+            wantedPosition = target.TransformPoint(0, height, -distance);
         }
 
         // Dampen the movement of the camera towards the position
