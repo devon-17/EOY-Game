@@ -4,40 +4,44 @@ using UnityEngine;
 
 public class ThirdPersonMovement : MonoBehaviour
 {
-    // The character controller component
+    public static ThirdPersonMovement instance;
     CharacterController controller;
+    public Transform cam;
+    public float speed = 6f;
+    public float turnSmoothTime = 0.1f;
+    float turnSmoothVelocity;
 
-    // The character's movement speed
-    public float movementSpeed = 5f;
 
-    // The character's jump force
-    public float jumpForce = 10f;
-
-    // Use this for initialization
+    // Start is called before the first frame update
     void Start()
     {
-        // Get the character controller component
+        instance = this;
         controller = GetComponent<CharacterController>();
     }
 
     // Update is called once per frame
     void Update()
     {
-        // Get the character's movement input from the player
-        float horizontal = Input.GetAxis("Horizontal");
-        float vertical = Input.GetAxis("Vertical");
+        Move();
+    }
 
-        // Calculate the movement direction
-        Vector3 direction = new Vector3(horizontal, 0, vertical);
+    public void Move()
+    {
+        if(!controller)
+            return;
 
-        // Move the character in the specified direction
-        controller.Move(direction * movementSpeed * Time.deltaTime);
+        float horizontal = Input.GetAxisRaw("Horizontal");
+        float vertical = Input.GetAxisRaw("Vertical");
+        Vector3 direction = new Vector3(horizontal, 0f, vertical).normalized;
 
-        // Check if the player wants to jump
-        if (Input.GetButtonDown("Jump"))
+        if (direction.magnitude >= 0.1f)
         {
-            // Make the character jump
-            controller.Move(Vector3.up * jumpForce * Time.deltaTime);
+            float targetAngle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg + cam.eulerAngles.y;
+            float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, turnSmoothTime);
+            transform.rotation = Quaternion.Euler(0f, angle, 0f);
+
+            Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
+            controller.Move(moveDir.normalized * speed * Time.deltaTime);
         }
     }
 }
