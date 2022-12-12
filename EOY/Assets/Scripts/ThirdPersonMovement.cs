@@ -47,8 +47,8 @@ public class ThirdPersonMovement : MonoBehaviour
 
             if (Input.GetButton("Jump") && canMove)
             {
-                moveDirection.y = jumpSpeed;
                 anim.SetTrigger("Jump");
+                StartCoroutine(WaitToJump());
             }
         }
 
@@ -69,5 +69,11 @@ public class ThirdPersonMovement : MonoBehaviour
             playerCameraParent.localRotation = Quaternion.Euler(rotation.x, 0, 0);
             transform.eulerAngles = new Vector2(0, rotation.y);
         }
+    }
+
+    public IEnumerator WaitToJump()
+    {
+        yield return new WaitForSeconds(.15f);
+        moveDirection.y = jumpSpeed;
     }
 }
