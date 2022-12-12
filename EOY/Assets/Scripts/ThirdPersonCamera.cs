@@ -4,38 +4,43 @@ using UnityEngine;
 
 public class ThirdPersonCamera : MonoBehaviour
 {
-    public Transform target; // The object that the camera should follow
-    public float distance = 5.0f; // The distance between the camera and the target
-    public float height = 2.0f; // The height of the camera above the target
-    public float damping = 5.0f; // The damping factor for the smooth follow effect
-    public bool smoothRotation = true; // Should the camera rotate smoothly towards the target?
-    public bool followBehind = true; // Should the camera follow behind the target?
+    public Transform referenceTransform;
+    public float collisionOffset = 0.3f; //To prevent Camera from clipping through Objects
+    public float cameraSpeed = 15f; //How fast the Camera should snap into position if there are no obstacles
 
-    private void LateUpdate()
+    Vector3 defaultPos;
+    Vector3 directionNormalized;
+    Transform parentTransform;
+    float defaultDistance;
+
+    // Start is called before the first frame update
+    void Start()
     {
-        // Calculate the position of the camera
-        Vector3 wantedPosition;
-        if (followBehind)
+        defaultPos = transform.localPosition;
+        directionNormalized = defaultPos.normalized;
+        parentTransform = transform.parent;
+        defaultDistance = Vector3.Distance(defaultPos, Vector3.zero);
+
+        //Lock cursor
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+    }
+
+    // LateUpdate is called after Update
+    void LateUpdate()
+    {
+        Vector3 currentPos = defaultPos;
+        RaycastHit hit;
+        Vector3 dirTmp = parentTransform.TransformPoint(defaultPos) - referenceTransform.position;
+        if (Physics.SphereCast(referenceTransform.position, collisionOffset, dirTmp, out hit, defaultDistance))
         {
-            wantedPosition = target.TransformPoint(0, height, distance);
+            currentPos = (directionNormalized * (hit.distance - collisionOffset));
+
+            transform.localPosition = currentPos;
         }
         else
         {
-            wantedPosition = target.TransformPoint(0, height, -distance);
-        }
-
-        // Dampen the movement of the camera towards the position
-        transform.position = Vector3.Lerp(transform.position, wantedPosition, damping * Time.deltaTime);
-
-        // Rotate the camera to face the target
-        if (smoothRotation)
-        {
-            Quaternion wantedRotation = Quaternion.LookRotation(target.position - transform.position, target.up);
-            transform.rotation = Quaternion.Slerp(transform.rotation, wantedRotation, damping * Time.deltaTime);
-        }
-        else
-        {
-            transform.rotation = Quaternion.LookRotation(target.position - transform.position, target.up);
+            transform.localPosition = Vector3.Lerp(transform.localPosition, currentPos, Time.deltaTime * cameraSpeed);
         }
     }
 }

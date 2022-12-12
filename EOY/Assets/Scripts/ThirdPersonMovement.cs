@@ -4,57 +4,70 @@ using UnityEngine;
 
 public class ThirdPersonMovement : MonoBehaviour
 {
-    public static ThirdPersonMovement instance;
-    CharacterController controller;
-    public Transform cam;
-    public float speed = 6f;
-    public float turnSmoothTime = 0.1f;
-    float turnSmoothVelocity;
-    Animator playerAnim;
-    // Start is called before the first frame update
+    public float speed = 7.5f;
+    public float jumpSpeed = 8.0f;
+    public float gravity = 20.0f;
+    public Transform playerCameraParent;
+    public float lookSpeed = 2.0f;
+    public float lookXLimit = 60.0f;
+
+    CharacterController characterController;
+    Vector3 moveDirection = Vector3.zero;
+    Vector2 rotation = Vector2.zero;
+
+    [HideInInspector]
+    public bool canMove = true;
+
+    private Animator anim;
+
     void Start()
     {
-        instance = this;
-        controller = GetComponent<CharacterController>();
-        playerAnim = GetComponent<Animator>();
+        characterController = GetComponent<CharacterController>();
+        anim = GetComponent<Animator>();
+        rotation.y = transform.eulerAngles.y;
     }
 
-    // Update is called once per frame
     void Update()
     {
+        float currentSpeed = characterController.velocity.magnitude;
+        anim.SetFloat("Speed", currentSpeed);
         Move();
     }
 
-    public void Move()
+    void Move()
     {
-        if(!controller)
-            return;
-
-        float horizontal = Input.GetAxisRaw("Horizontal");
-        float vertical = Input.GetAxisRaw("Vertical");
-        Vector3 direction = new Vector3(horizontal, 0f, vertical).normalized;
-
-        if (direction.magnitude >= 0.1f)
+        if (characterController.isGrounded)
         {
-            float targetAngle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg + cam.eulerAngles.y;
-            float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, turnSmoothTime);
-            transform.rotation = Quaternion.Euler(0f, angle, 0f);
+            // We are grounded, so recalculate move direction based on axes
+            Vector3 forward = transform.TransformDirection(Vector3.forward);
+            Vector3 right = transform.TransformDirection(Vector3.right);
+            float curSpeedX = canMove ? speed * Input.GetAxis("Vertical") : 0;
+            float curSpeedY = canMove ? speed * Input.GetAxis("Horizontal") : 0;
+            moveDirection = (forward * curSpeedX) + (right * curSpeedY);
 
-        
-
-            Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
-            controller.Move(moveDir.normalized * speed * Time.deltaTime);
-            //Sets animation to walking
-            playerAnim.SetTrigger("Walk");
-
+            if (Input.GetButton("Jump") && canMove)
+            {
+                moveDirection.y = jumpSpeed;
+                anim.SetTrigger("Jump");
+            }
         }
-        //Checks if not moving
-        if(direction.magnitude >= 0f)
+
+        // Apply gravity. Gravity is multiplied by deltaTime twice (once here, and once below
+        // when the moveDirection is multiplied by deltaTime). This is because gravity should be applied
+        // as an acceleration (ms^-2)
+        moveDirection.y -= gravity * Time.deltaTime;
+
+        // Move the controller
+        characterController.Move(moveDirection * Time.deltaTime);
+
+        // Player and Camera rotation
+        if (canMove)
         {
-                //Sets animation to idle
-                playerAnim.SetTrigger("Idle");
+            rotation.y += Input.GetAxis("Mouse X") * lookSpeed;
+            rotation.x += -Input.GetAxis("Mouse Y") * lookSpeed;
+            rotation.x = Mathf.Clamp(rotation.x, -lookXLimit, lookXLimit);
+            playerCameraParent.localRotation = Quaternion.Euler(rotation.x, 0, 0);
+            transform.eulerAngles = new Vector2(0, rotation.y);
         }
-        
     }
-
 }
