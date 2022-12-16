@@ -10,9 +10,12 @@ public class ShopManager : MonoBehaviour
     public float money;
     public Text moneyText;
 
+    GameObject ButtonRef;
+
     // Start is called before the first frame update
     void Start()
     {
+        
         moneyText.text = "Money: " + money.ToString("f2");
 
         // id's
